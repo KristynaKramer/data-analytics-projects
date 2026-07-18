@@ -4,4 +4,3 @@ matplotlib
 datetime
 numpy
 requests
-io
