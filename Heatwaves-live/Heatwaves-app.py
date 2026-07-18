@@ -820,8 +820,7 @@ def warming_stripes_plot(latitude, longitude):
 
 st.title('Heatwaves around the world')
 
-if not st.session_state.selected_city:
-    st.write('Start by searching for a city')
+st.write('Start by searching for a city in the sidebar.')
 
 # Reference period slider on the sidebar
 with st.sidebar:
