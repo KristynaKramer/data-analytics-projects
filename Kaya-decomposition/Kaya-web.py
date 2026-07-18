@@ -40,7 +40,7 @@ def load_data():
     # CO2 fossil emissions
     # https://edgar.jrc.ec.europa.eu/dataset_ghg2025
     co2 = pd.read_excel(
-        'IEA_EDGAR_CO2_1970_2024.xlsx',
+        'Kaya-decomposition/IEA_EDGAR_CO2_1970_2024.xlsx',
         sheet_name = 'TOTALS BY COUNTRY',
         skiprows = 9
         )
@@ -49,21 +49,21 @@ def load_data():
     # Population
     # https://data.worldbank.org/indicator/SP.POP.TOTL
     population = pd.read_csv(
-        'population.csv',
+        'Kaya-decomposition/population.csv',
         skiprows = 4
     )
 
     # GDP per capita annual growth in %
     # https://data.worldbank.org/indicator/NY.GDP.PCAP.KD.ZG
     gdp_population = pd.read_csv(
-        'GDP_PCAP.csv',
+        'Kaya-decomposition/GDP_PCAP.csv',
         skiprows = 4
     )
 
     # Energy use (kg of oil equivalent) per $1,000 GDP (constant 2021 PPP)
     # https://data.worldbank.org/indicator/EG.USE.COMM.GD.PP.KD
     energy_gdp = pd.read_csv(
-        'Energy_perGDP.csv',
+        'Kaya-decomposition/Energy_perGDP.csv',
         skiprows = 4
     )
 
@@ -71,7 +71,7 @@ def load_data():
     # https://ourworldindata.org/grapher/co2-per-unit-energy
 
     co2_energy_long = pd.read_csv(
-        'co2-per-unit-energy.csv'
+        'Kaya-decomposition/co2-per-unit-energy.csv'
     )
 
     #---------------------------------------------------
