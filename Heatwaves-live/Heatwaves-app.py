@@ -60,7 +60,6 @@ def search_city(city):
     data = response.json()
     
     if "results" not in data or len(data["results"]) == 0:
-        st.write('Start by searching for a city')
         return None
     
     return data["results"]
@@ -820,6 +819,9 @@ def warming_stripes_plot(latitude, longitude):
 # --- STREAMLIT FLOW ---
 
 st.title('Heatwaves around the world')
+
+if not st.session_state.selected_city:
+    st.write('Start by searching for a city')
 
 # Reference period slider on the sidebar
 with st.sidebar:
