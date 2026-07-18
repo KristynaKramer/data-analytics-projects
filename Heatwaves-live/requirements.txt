@@ -4,3 +4,4 @@ matplotlib
 datetime
 numpy
 requests
+seaborn
