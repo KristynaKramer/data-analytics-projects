@@ -60,6 +60,7 @@ def search_city(city):
     data = response.json()
     
     if "results" not in data or len(data["results"]) == 0:
+        st.write('Start by searching for a city')
         return None
     
     return data["results"]
