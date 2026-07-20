@@ -889,14 +889,15 @@ if city_details:
                     'Copernicus spaghetti plot',
                     'Warming stripes'
                     ]
-    selected = st.sidebar.selectbox(label='Which plot are you interested in?', options=plot_options, key="my_late_selectbox")
+
     st.markdown("""
         <style>
-        div[data-testid="stSelectbox"]:has(input[aria-labelledby*="my_late_selectbox"]) div[data-baseweb="popover"] {
+        section[data-testid="stSidebar"] div[data-baseweb="popover"] {
             transform: translateY(-100%) !important;
         }
         </style>
         """, unsafe_allow_html=True)
+    selected = st.sidebar.selectbox(label='Which plot are you interested in?', options=plot_options)
 
     if selected == 'Daily maximum temperatures':
         daily_max_plot(latitude, longitude, select_years())
