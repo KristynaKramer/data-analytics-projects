@@ -890,13 +890,6 @@ if city_details:
                     'Warming stripes'
                     ]
 
-    st.markdown("""
-        <style>
-        section[data-testid="stSidebar"] div[data-baseweb="popover"] {
-            transform: translateY(-100%) !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
     selected = st.sidebar.selectbox(label='Which plot are you interested in?', options=plot_options)
 
     if selected == 'Daily maximum temperatures':
@@ -919,6 +912,8 @@ if city_details:
 
     elif selected == 'Warming stripes':
         warming_stripes_plot(latitude, longitude)
+
+st.sidebar.write("") #Trying to make sure that the selectbox has enough space
 
 
 
