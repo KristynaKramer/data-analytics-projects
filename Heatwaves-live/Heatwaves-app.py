@@ -11,8 +11,7 @@ import matplotlib as mpl
 from matplotlib.colors import ListedColormap
 from io import StringIO # for pandas to read csv received by API
 
-#REFERENCE_START = 1961
-#REFERENCE_END = 1990
+
 START_DATE = '1940-01-01'
 END_DATE = (dt.date.today() - dt.timedelta(days=2)).isoformat()
 THIS_YEAR = dt.date.today().year
@@ -74,11 +73,12 @@ def select_correct_city(list):
         label = ", ".join(filter(None, [r["name"], region, country]))
         options.append(label)
 
-    choice = st.radio("Select the correct city:", options)
+    st.sidebar.markdown("### Select the correct city:")
+    choice = st.selectbox("Select the correct city:", options, label_visibility="collapsed")
 
-    if st.button("Confirm"):
-        index = options.index(choice)
-        st.session_state.selected_city = list[index]
+    #if st.button("Confirm"):
+    index = options.index(choice)
+    st.session_state.selected_city = list[index]
 
 #--------------------------------------------------------
 
@@ -118,7 +118,14 @@ def load_data(latitude, longitude):
         "timezone": "auto",
         "format": "csv"
     }
-    response = requests.get(url, params=params, timeout=60)
+    try:
+        response = requests.get(url, params=params, timeout=60)
+    except requests.exceptions.Timeout:
+        st.error("Fetching the data timed out. Please clear the cache (press C or select the Clear cache option from the ⋮ Streamlit menu) and try again.")
+        st.stop()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Something went wrong while fetching data: {e}")
+        st.stop()
 
     # --- Load data into DataFrame ---
     df = pd.read_csv(StringIO(response.text), skiprows=3)
@@ -708,26 +715,9 @@ def warming_stripes_plot(latitude, longitude):
         '#fee0d2', '#fcbba1', '#fc9272', '#fb6a4a',
         '#ef3b2c', '#cb181d', '#a50f15', '#67000d', '#440007'])
 
-    # linearly normalizes data into the [0.0, 1.0] interval
-    #norm = mpl.colors.Normalize(
-    #        df['anomalies'].min(), 
-    #        df['anomalies'].max()
-    #        )
-
-    # normalizes data 
-    # boundary between blue and red is the average of the reference period
-    #max_overall = df['temperature'].max()
-    #min_overall = df['temperature'].min()
-    #max_abs = max(np.abs(max_overall-avg), np.abs(min_overall-avg))
-    #norm = mpl.colors.TwoSlopeNorm(
-    #    vmin=-max_abs,
-    #    vcenter=0,
-    #    vmax=max_abs
-    #)
-
-    # another way how to normalize data
-    # zero is still the reference average
-    # but color scale is 
+    # normalize data
+    # zero is the reference average
+    # color scale is fixed to 3*std of 1902-2000
     baseline_period = df[(df['year'] >= 1901) & (df['year'] <= 2000)]
     std_1901_2000 = baseline_period['temperature'].std()
 
@@ -818,102 +808,113 @@ def warming_stripes_plot(latitude, longitude):
 #---------------------------------------------------------
 # --- STREAMLIT FLOW ---
 
-st.title('Heatwaves around the world')
+def streamlit_flow():
+    '''
+    This is the main app flow
+    '''
 
-st.write('Start by searching for a city in the sidebar.')
+    # Reference period slider on the sidebar
+    global REFERENCE_START, REFERENCE_END #these are global, remnant from original code
+    with st.sidebar:
+        st.markdown('### Reference period:')
+        (REFERENCE_START, REFERENCE_END) = st.slider(
+            label='Reference period:', 
+            min_value=1941,
+            max_value=THIS_YEAR-1,
+            value=(1961,1990),
+            step=1, 
+            label_visibility="collapsed"
+            )
 
-# Reference period slider on the sidebar
-with st.sidebar:
-    (REFERENCE_START, REFERENCE_END) = st.slider(
-        label='Reference period:', 
-        min_value=1941,
-        max_value=THIS_YEAR-1,
-        value=(1961,1990),
-        step=1, 
-        )
-
-st.write('Data are pulled from [open-meteo.com](https://open-meteo.com/en/docs/historical-weather-api) '
-    'for the period {} to {}.'.format(START_DATE,END_DATE))
+    st.write('Data are pulled from [open-meteo.com](https://open-meteo.com/en/docs/historical-weather-api) '
+        'for the period {} to {}.'.format(START_DATE,END_DATE))
 
 
-# Initialize state on first run
-if "results" not in st.session_state:
-    st.session_state.results = None
-if "selected_city" not in st.session_state:
-    st.session_state.selected_city = None
-
-# --- Stage 1: search for a city ---
-with st.sidebar:
-    with st.form("search_form"):
-        city_input = st.text_input("Enter a city name")
-        submitted = st.form_submit_button("Search")
-
-if submitted:
-    results = search_city(city_input)
-    if results is None:
-        st.sidebar.warning(f"No results found for '{city_input}'.")
+    # Initialize state on first run
+    if "results" not in st.session_state:
         st.session_state.results = None
-    else:
-        st.session_state.results = results
+    if "selected_city" not in st.session_state:
         st.session_state.selected_city = None
 
-# --- Stage 2: select correct city ---
-if st.session_state.results:
+    # Search for a city
     with st.sidebar:
-        select_correct_city(st.session_state.results)
-    #city = st.session_state.results
-    #st.write('You selected ', city)
+        with st.form("search_form"):
+            city_input = st.text_input("Enter a city name")
+            submitted = st.form_submit_button("Search")
 
-# --- Stage 3: get city details, incl. coordinates ---
-city_details = get_city_details()
+    if submitted:
+        results = search_city(city_input)
+        if results is None:
+            st.sidebar.warning(f"No results found for '{city_input}'.")
+            st.session_state.results = None
+        else:
+            st.session_state.results = results
+            st.session_state.selected_city = None
+
+    # Select correct city
+    if st.session_state.results:
+        with st.sidebar:
+            select_correct_city(st.session_state.results)
+
+    # Get city details, incl. coordinates
+    city_details = get_city_details()
 
 
-if city_details:
-    if city_details['admin1'] == '':
-        city = city_details['name'] + ', ' + city_details['country']
-    else:
-        city = city_details['name'] + ', ' + city_details['admin1'] + ', ' + city_details['country']
-    latitude = city_details['latitude']
-    longitude = city_details['longitude']
-    st.header(city)
-#else:
-#    raise ValueError('No coordinates found.')
+    if city_details:
+        if city_details['admin1'] == '':
+            city = city_details['name'] + ', ' + city_details['country']
+        else:
+            city = city_details['name'] + ', ' + city_details['admin1'] + ', ' + city_details['country']
+        latitude = city_details['latitude']
+        longitude = city_details['longitude']
+        st.markdown(f'### {city}')
 
-# --- Stage 4: Select and create plot ---
-    plot_options = [
-                    'Daily maximum temperatures',
-                    'Temperatures during heatwaves (5°C)',
-                    'Temperatures during heatwaves (std)',
-                    'Number of heatwave days per year (5°C)',
-                    'Number of heatwave days per year (std)',
-                    'Copernicus spaghetti plot',
-                    'Warming stripes'
-                    ]
+    # Select and create plot
+        plot_options = [
+                        'Daily maximum temperatures',
+                        'Temperatures during heatwaves (5°C)',
+                        'Temperatures during heatwaves (std)',
+                        'Number of heatwave days per year (5°C)',
+                        'Number of heatwave days per year (std)',
+                        'Copernicus spaghetti plot',
+                        'Warming stripes'
+                        ]
+        st.sidebar.markdown("### Which plot are you interested in?")
+        selected = st.sidebar.radio(label='Which plot are you interested in?', options=plot_options, label_visibility="collapsed")
 
-    selected = st.sidebar.selectbox(label='Which plot are you interested in?', options=plot_options)
+        if selected == 'Daily maximum temperatures':
+            daily_max_plot(latitude, longitude, select_years())
 
-    if selected == 'Daily maximum temperatures':
-        daily_max_plot(latitude, longitude, select_years())
+        elif selected == 'Temperatures during heatwaves (5°C)':
+            heatwave_days_plot(latitude, longitude, 'fixed', select_years())
+        
+        elif selected == 'Temperatures during heatwaves (std)':
+            heatwave_days_plot(latitude, longitude, 'std',  select_years())
 
-    elif selected == 'Temperatures during heatwaves (5°C)':
-       heatwave_days_plot(latitude, longitude, 'fixed', select_years())
-    
-    elif selected == 'Temperatures during heatwaves (std)':
-        heatwave_days_plot(latitude, longitude, 'std',  select_years())
+        elif selected == 'Number of heatwave days per year (5°C)':
+            heatwave_count_plot(latitude, longitude, 'fixed')
 
-    elif selected == 'Number of heatwave days per year (5°C)':
-        heatwave_count_plot(latitude, longitude, 'fixed')
+        elif selected == 'Number of heatwave days per year (std)':
+            heatwave_count_plot(latitude, longitude, 'std')
 
-    elif selected == 'Number of heatwave days per year (std)':
-        heatwave_count_plot(latitude, longitude, 'std')
+        elif selected == 'Copernicus spaghetti plot':
+            spaghetti_plot(latitude, longitude, select_years())
 
-    elif selected == 'Copernicus spaghetti plot':
-        spaghetti_plot(latitude, longitude, select_years())
+        elif selected == 'Warming stripes':
+            warming_stripes_plot(latitude, longitude)
 
-    elif selected == 'Warming stripes':
-        warming_stripes_plot(latitude, longitude)
+#-------------------------------------------------------------      
 
-st.sidebar.write("") #Trying to make sure that the selectbox has enough space
+st.title('Heatwaves around the world')
+st.write('Start by searching for a city in the sidebar.')
 
+try:
+    streamlit_flow()
+except Exception as e:
+    st.error("Something went wrong.")
+    if st.button("Clear cache and retry"):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.rerun()
 
 
