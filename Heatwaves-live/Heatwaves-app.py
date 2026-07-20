@@ -650,6 +650,8 @@ def select_years():
         )
         if checked:
             selected_years.append(year)
+    
+    st.write('')
 
     return selected_years
 
