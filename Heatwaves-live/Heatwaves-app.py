@@ -889,10 +889,10 @@ if city_details:
                     'Copernicus spaghetti plot',
                     'Warming stripes'
                     ]
-    sselected = st.sidebar.selectbox(label='Which plot are you interested in?', options=plot_options, key="my_late_selectbox")
+    selected = st.sidebar.selectbox(label='Which plot are you interested in?', options=plot_options, key="my_late_selectbox")
     st.markdown("""
         <style>
-        section[data-testid="stSidebar"] div[data-baseweb="popover"] {
+        div[data-testid="stSelectbox"]:has(input[aria-labelledby*="my_late_selectbox"]) div[data-baseweb="popover"] {
             transform: translateY(-100%) !important;
         }
         </style>
